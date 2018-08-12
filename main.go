@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"github.com/sanity-io/litter"
 	"log"
 	"reflect"
 )
@@ -29,7 +30,7 @@ type ResultMap struct {
 func NewColValues(cols []string, vals []interface{}) *DBValues {
 	colMap := make(map[string]interface{})
 	for i, col := range cols {
-		colMap[col] = i
+		colMap[col] = vals[i]
 	}
 
 	return &DBValues{m: colMap}
@@ -54,19 +55,20 @@ func scanRow(cols []string, vals []interface{}, resultSlicePtr interface{}, m *R
 	var found reflect.Value
 	if foundInterface == nil {
 		found = reflect.New(reflect.TypeOf(resultSlicePtr).Elem().Elem().Elem())
-		fillStruct(found, colValues)
+		fillStruct(found, colValues, m)
+		s := reflect.ValueOf(resultSlicePtr).Elem()
+		s.Set(reflect.Append(s, found))
 	} else {
 		found = reflect.ValueOf(foundInterface)
 	}
-
-	s := reflect.ValueOf(resultSlicePtr).Elem()
-	s.Set(reflect.Append(s, found))
 }
 
-func fillStruct(structValuePtr reflect.Value, values *DBValues) {
+func fillStruct(structValuePtr reflect.Value, values *DBValues, m *ResultMap) {
 	structValue := structValuePtr.Elem()
-	for i := 0; i < structValue.Type().NumField(); i++ {
-		//fmt.Println("!!!", structValue.Field(i))
+	for dbColName, structFieldName := range m.DBToStruct {
+		colValuePtr := values.m[dbColName] // got *string
+		colValue := reflect.ValueOf(colValuePtr).Elem()
+		structValue.FieldByName(structFieldName).Set(colValue)
 	}
 }
 
@@ -147,6 +149,8 @@ FROM users u
 
 		checkErr(err)
 	}
+
+	litter.Dump(u)
 }
 
 func checkErr(err error) {
