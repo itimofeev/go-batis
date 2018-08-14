@@ -27,6 +27,10 @@ func scanRows(rows *sql.Rows, u interface{}, m *ResultMap) {
 
 func scanRow(cols []string, vals []interface{}, resultSlicePtr interface{}, m *ResultMap) {
 	colValues := NewDBValues(cols, vals)
+	scanRow2(colValues, resultSlicePtr, m)
+}
+
+func scanRow2(colValues *DBValues, resultSlicePtr interface{}, m *ResultMap) {
 	foundInterface := findExistedByPK(resultSlicePtr, colValues, m)
 	var found reflect.Value
 	if foundInterface == nil {
@@ -36,6 +40,25 @@ func scanRow(cols []string, vals []interface{}, resultSlicePtr interface{}, m *R
 		s.Set(reflect.Append(s, found))
 	} else {
 		found = reflect.ValueOf(foundInterface)
+	}
+
+	for prefix, subResultMap := range m.Sub {
+		subColValues := colValues.filterByPrefix(prefix)
+
+		sliceField, _ := found.Type().Elem().FieldByName("Pets")
+		sliceFieldType := sliceField.Type // []Pet
+		//sliceElemType  := sliceFieldType.Elem() // Pet
+
+		fieldValue := found.Elem().FieldByName("Pets")
+		isNil := fieldValue.IsNil()
+		if isNil {
+			slice := reflect.MakeSlice(sliceFieldType, 0, 0)
+			fieldValue.Set(slice)
+		}
+
+		subFieldPtr := fieldValue.Addr().Interface()
+
+		scanRow2(subColValues, subFieldPtr, subResultMap)
 	}
 }
 
@@ -59,11 +82,14 @@ func findExistedByPK(resultSlicePtr interface{}, colValues *DBValues, m *ResultM
 	return nil
 }
 
-func isEqualByPK(dbValue *DBValues, itemOfSlice reflect.Value, resultMap *ResultMap) bool {
+func isEqualByPK(dbValue *DBValues, itemOfSlicePtr reflect.Value, resultMap *ResultMap) bool {
 	for _, pkDBColName := range resultMap.PKDBToStruct {
+		itemOfSlice := itemOfSlicePtr.Elem()
 		structValue := itemOfSlice.FieldByName(resultMap.DBToStruct[pkDBColName])
-		colValue := dbValue.getByName(pkDBColName)
-		if structValue.Interface() != colValue {
+		colValueInterfacePtr := dbValue.getByName(pkDBColName)
+		colValueStringPtr := colValueInterfacePtr.(*string)
+
+		if structValue.Interface() != *colValueStringPtr {
 			return false
 		}
 	}

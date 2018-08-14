@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 type ResultMap struct {
 	PKDBToStruct []string
 	DBToStruct   map[string]string
@@ -27,4 +29,16 @@ func (v *DBValues) getByName(s string) interface{} {
 		}
 	}
 	return nil
+}
+
+func (v *DBValues) filterByPrefix(prefix string) *DBValues {
+	colMap := make(map[string]interface{})
+
+	for key, value := range v.m {
+		if strings.HasPrefix(key, prefix) {
+			colMap[strings.TrimPrefix(key, prefix+"_")] = value
+		}
+	}
+
+	return &DBValues{m: colMap}
 }

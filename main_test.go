@@ -17,7 +17,7 @@ type User struct {
 	ID   string
 	Name string
 
-	Pets []Pet
+	Pets []*Pet
 }
 
 func Test_ScanFromDB(t *testing.T) {
@@ -48,7 +48,7 @@ func Test_ScanFromDB(t *testing.T) {
 
 func prepareResultMap() *ResultMap {
 	m := &ResultMap{
-		PKDBToStruct: make([]string, 0),
+		PKDBToStruct: []string{"id"},
 		DBToStruct:   make(map[string]string),
 		Sub:          make(map[string]*ResultMap),
 	}
@@ -57,9 +57,11 @@ func prepareResultMap() *ResultMap {
 	m.DBToStruct["name"] = "Name"
 
 	p := ResultMap{
-		DBToStruct: make(map[string]string),
-		Sub:        make(map[string]*ResultMap),
+		PKDBToStruct: []string{"id"},
+		DBToStruct:   make(map[string]string),
+		Sub:          make(map[string]*ResultMap),
 	}
+	p.DBToStruct["id"] = "ID"
 	p.DBToStruct["type"] = "Type"
 
 	m.Sub["pet"] = &p
