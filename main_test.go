@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/sanity-io/litter"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -41,9 +42,58 @@ func Test_ScanFromDB(t *testing.T) {
 
 	u := make([]*User, 0)
 
-	scanRows(rows, &u, prepareResultMap())
+	scanRows(&rowsi{Rows: rows}, &u, prepareResultMap())
 
 	litter.Dump(u)
+}
+
+type testRows struct {
+	columns []string
+	rows    [][]interface{}
+	current int
+}
+
+func (r *testRows) Next() bool {
+	r.current++
+	return r.current+1 < len(r.columns)
+}
+
+func (r *testRows) Columns() ([]string, error) {
+	return r.columns, nil
+}
+
+func (r *testRows) Scan(dst ...interface{}) error {
+	for i := 0; i < len(dst); i++ {
+		dst[i] = r.rows[r.current-1][i]
+	}
+	return nil
+}
+
+func Test_ScanFromMemory(t *testing.T) {
+	u := make([]*User, 0)
+
+	row1 := []interface{}{stringPtr("user1"), stringPtr("First user"), stringPtr("cat"), stringPtr("pet1")}
+	row2 := []interface{}{stringPtr("user1"), stringPtr("First user"), stringPtr("dog"), stringPtr("pet2")}
+
+	rows := &testRows{
+		columns: []string{"id", "name", "pet_type", "pet_id"},
+		rows:    [][]interface{}{row1, row2},
+	}
+
+	scanRows(rows, &u, prepareResultMap())
+
+	assert.Len(t, u, 1)
+	assert.Len(t, u[0].Pets, 2)
+	assert.Equal(t, "user1", u[0].ID)
+	assert.Equal(t, "First user", u[0].Name)
+	assert.Equal(t, "pet1", u[0].Pets[0].ID)
+	assert.Equal(t, "cat", u[0].Pets[0].Type)
+	assert.Equal(t, "pet2", u[0].Pets[1].ID)
+	assert.Equal(t, "dog", u[0].Pets[1].Type)
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
 
 func prepareResultMap() *ResultMap {

@@ -1,15 +1,15 @@
 package main
 
 import (
-	"database/sql"
+	"github.com/sanity-io/litter"
 	"reflect"
 )
 
-func scanRows(rows *sql.Rows, u interface{}, m *ResultMap) {
-	for rows.Next() {
-		cols, err := rows.Columns()
-		checkErr(err)
+func scanRows(rows Rows, u interface{}, m *ResultMap) {
+	cols, err := rows.Columns()
+	checkErr(err)
 
+	for rows.Next() {
 		rawResult := make([]string, len(cols))
 
 		dest := make([]interface{}, len(cols)) // A temporary interface{} slice
@@ -19,18 +19,16 @@ func scanRows(rows *sql.Rows, u interface{}, m *ResultMap) {
 
 		err = rows.Scan(dest...)
 
-		scanRow(cols, dest, u, m)
+		litter.Dump(dest)
+
+		colValues := NewDBValues(cols, dest)
+		scanRow(colValues, u, m)
 
 		checkErr(err)
 	}
 }
 
-func scanRow(cols []string, vals []interface{}, resultSlicePtr interface{}, m *ResultMap) {
-	colValues := NewDBValues(cols, vals)
-	scanRow2(colValues, resultSlicePtr, m)
-}
-
-func scanRow2(colValues *DBValues, resultSlicePtr interface{}, m *ResultMap) {
+func scanRow(colValues *DBValues, resultSlicePtr interface{}, m *ResultMap) {
 	foundInterface := findExistedByPK(resultSlicePtr, colValues, m)
 	var found reflect.Value
 	if foundInterface == nil {
@@ -58,7 +56,7 @@ func scanRow2(colValues *DBValues, resultSlicePtr interface{}, m *ResultMap) {
 
 		subFieldPtr := fieldValue.Addr().Interface()
 
-		scanRow2(subColValues, subFieldPtr, subResultMap)
+		scanRow(subColValues, subFieldPtr, subResultMap)
 	}
 }
 
