@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/sanity-io/litter"
 	"reflect"
 )
 
@@ -18,8 +17,6 @@ func scanRows(rows Rows, u interface{}, m *ResultMap) {
 		}
 
 		err = rows.Scan(dest...)
-
-		litter.Dump(dest)
 
 		colValues := NewDBValues(cols, dest)
 		scanRow(colValues, u, m)

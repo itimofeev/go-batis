@@ -55,7 +55,7 @@ type testRows struct {
 
 func (r *testRows) Next() bool {
 	r.current++
-	return r.current+1 < len(r.columns)
+	return r.current <= len(r.rows)
 }
 
 func (r *testRows) Columns() ([]string, error) {
@@ -73,16 +73,19 @@ func Test_ScanFromMemory(t *testing.T) {
 	u := make([]*User, 0)
 
 	row1 := []interface{}{stringPtr("user1"), stringPtr("First user"), stringPtr("cat"), stringPtr("pet1")}
-	row2 := []interface{}{stringPtr("user1"), stringPtr("First user"), stringPtr("dog"), stringPtr("pet2")}
+	row2 := []interface{}{stringPtr("user2"), stringPtr("Second user"), stringPtr("mouse"), stringPtr("pet3")}
+	row3 := []interface{}{stringPtr("user1"), stringPtr("First user"), stringPtr("dog"), stringPtr("pet2")}
 
 	rows := &testRows{
 		columns: []string{"id", "name", "pet_type", "pet_id"},
-		rows:    [][]interface{}{row1, row2},
+		rows:    [][]interface{}{row1, row2, row3},
 	}
 
 	scanRows(rows, &u, prepareResultMap())
 
-	assert.Len(t, u, 1)
+	litter.Dump(u)
+
+	assert.Len(t, u, 2)
 	assert.Len(t, u[0].Pets, 2)
 	assert.Equal(t, "user1", u[0].ID)
 	assert.Equal(t, "First user", u[0].Name)
