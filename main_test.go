@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	"github.com/sanity-io/litter"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/sanity-io/litter"
+	"github.com/stretchr/testify/assert"
 )
 
 type Pet struct {
@@ -23,7 +24,7 @@ type User struct {
 
 func Test_ScanFromDB(t *testing.T) {
 	db, err := sql.Open("postgres",
-		"postgresql://postgres:@db:5432/postgres?sslmode=disable")
+		"postgresql://postgres:password@localhost:5432/postgres?sslmode=disable")
 	checkErr(err)
 	defer db.Close()
 	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Second*5)
